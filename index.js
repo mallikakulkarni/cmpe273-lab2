@@ -4,18 +4,28 @@ var login = require('./login');
 var app = connect();
 
 app.use(connect.json()); // Parse JSON request body into `request.body`
-app.use(connect.urlencoded()); // Parse form in request body into `request.body`
-app.use(connect.cookieParser()); // Parse cookies in the request headers into `request.cookies`
+app.use(connect.urlencoded()); // Parse form in request body into
+								// `request.body`
+app.use(connect.cookieParser()); // Parse cookies in the request headers into
+									// `request.cookies`
 app.use(connect.query()); // Parse query string into `request.query`
 
 app.use('/', main);
 
 function main(request, response, next) {
 	switch (request.method) {
-		case 'GET': get(request, response); break;
-		case 'POST': post(request, response); break;
-		case 'DELETE': del(request, response); break;
-		case 'PUT': put(request, response); break;
+	case 'GET':
+		get(request, response);
+		break;
+	case 'POST':
+		post(request, response);
+		break;
+	case 'DELETE':
+		del(request, response);
+		break;
+	case 'PUT':
+		put(request, response);
+		break;
 	}
 };
 
@@ -24,9 +34,9 @@ function get(request, response) {
 	console.log(cookies);
 	if ('session_id' in cookies) {
 		var sid = cookies['session_id'];
-		if ( login.isLoggedIn(sid) ) {
+		if (login.isLoggedIn(sid)) {
 			response.setHeader('Set-Cookie', 'session_id=' + sid);
-			response.end(login.hello(sid));	
+			response.end(login.hello(sid));
 		} else {
 			response.end("Invalid session_id! Please login again\n");
 		}
@@ -38,25 +48,49 @@ function get(request, response) {
 function post(request, response) {
 	// TODO: read 'name and email from the request.body'
 	// var newSessionId = login.login('xxx', 'xxx@gmail.com');
+	
+	console.log(request.body);
+	
+	var sid = login.login(request.body.name, request.body.email);
+
 	// TODO: set new session id to the 'session_id' cookie in the response
-	// replace "Logged In" response with response.end(login.hello(newSessionId));
+	// replace "Logged In" response with
+	// response.end(login.hello(newSessionId));
+	response.setHeader('Set-Cookie', 'session_id=' + sid);
 
 	response.end("Logged In\n");
 };
 
 function del(request, response) {
 	console.log("DELETE:: Logout from the server");
- 	// TODO: remove session id via login.logout(xxx)
- 	// No need to set session id in the response cookies since you just logged out!
+	// TODO: remove session id via login.logout(xxx)
+	// No need to set session id in the response cookies since you just logged
+	// out!
+	var cookies = request.cookies;
+	var sid = cookies['session_id'];
+	if (login.isLoggedIn(sid)) {
+		login.logout(sid);
+		response.end("Logged out of session. Thanks\n");
+	} else {
+		response.end("Invalid session_id! Please login again\n");
+	}
 
-  	response.end('Logged out from the server\n');
+	response.end('Logged out from the server\n');
 };
 
 function put(request, response) {
-	console.log("PUT:: Re-generate new seesion_id for the same user");
+	console.log("PUT:: Re-generate new session_id for the same user");
 	// TODO: refresh session id; similar to the post() function
-
-	response.end("Re-freshed session id\n");
+	var cookies = request.cookies;
+	var sid = cookies['session_id'];
+	if (login.isLoggedIn(sid)) {
+		var sessionInfo = login.getSessionInfo(sid);
+		var newSid = login.login(sessionInfo.name, sessionInfo.email);
+		response.setHeader('Set-Cookie', 'session_id=' + newSid);
+		response.end("Re-freshed session id\n");
+	} else {
+		response.end("Invalid session_id! Please login again\n");
+	}
 };
 
 app.listen(8000);
